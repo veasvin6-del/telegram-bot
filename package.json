@@ -1,14 +1,13 @@
 {
   "name": "pdf-converter-bot",
   "version": "1.0.0",
-  "description": "Telegram Bot to convert PDF to Excel/Word/CSV/Text",
   "main": "src/bot.js",
   "scripts": {
     "start": "node src/bot.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
-    "xlsx": "^0.18.5",
+    "exceljs": "^4.3.0",
     "axios": "^1.6.0"
   },
   "engines": {
