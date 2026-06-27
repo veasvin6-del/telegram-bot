@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const TOKEN = process.env.BOT_TOKEN;
 if (!TOKEN) { console.error('❌ BOT_TOKEN missing!'); process.exit(1); }
@@ -67,7 +67,7 @@ bot.on('message', async (msg) => {
 
   if (text === '📞 ទាក់ទង') {
     return bot.sendMessage(chatId,
-      `📞 *ទាក់ទងអ្នកអភិវឌ្ឍន៍*\n\n💬 Telegram: @your_username\n📧 Email: your@email.com`,
+      `📞 *ទាក់ទងអ្នកអភិវឌ្ឍន៍*\n\n💬 Telegram: @your_username`,
       { parse_mode: 'Markdown', ...mainMenu }
     );
   }
@@ -81,16 +81,11 @@ bot.on('document', async (msg) => {
   if (!state || state.step !== 'waiting_pdf') {
     return bot.sendMessage(chatId, `⚠️ សូមជ្រើស *format* ពី Menu ជាមុនសិន!`, { parse_mode: 'Markdown', ...mainMenu });
   }
-
   if (doc.mime_type !== 'application/pdf') {
     return bot.sendMessage(chatId, `⚠️ ផ្ញើ *PDF file* ប៉ុណ្ណោះ!`, { parse_mode: 'Markdown' });
   }
-
   if (doc.file_size > 20 * 1024 * 1024) {
-    return bot.sendMessage(chatId,
-      `⚠️ File ធំពេក! Max *20MB*\nFile អ្នក: ${(doc.file_size/1024/1024).toFixed(1)}MB`,
-      { parse_mode: 'Markdown' }
-    );
+    return bot.sendMessage(chatId, `⚠️ File ធំពេក! Max *20MB*`, { parse_mode: 'Markdown' });
   }
 
   const fmt = state.format;
@@ -105,14 +100,11 @@ bot.on('document', async (msg) => {
     const fileLink = await bot.getFileLink(doc.file_id);
     const resp = await axios.get(fileLink, { responseType: 'arraybuffer' });
     const pdfBuffer = Buffer.from(resp.data);
-
     const text = extractTextFromPDF(pdfBuffer);
 
     if (!text || text.trim().length === 0) {
-      await bot.editMessageText(
-        `❌ មិនអាចអានអត្ថបទពី PDF នេះ!\n_PDF នេះអាចជា scanned image_`,
-        { chat_id: chatId, message_id: statusMsg.message_id, parse_mode: 'Markdown' }
-      );
+      await bot.editMessageText(`❌ មិនអាចអានអត្ថបទពី PDF នេះ!`,
+        { chat_id: chatId, message_id: statusMsg.message_id, parse_mode: 'Markdown' });
       delete userState[chatId];
       return bot.sendMessage(chatId, '🏠 ត្រឡប់ Menu', mainMenu);
     }
@@ -123,7 +115,7 @@ bot.on('document', async (msg) => {
     if (fmt === 'xlsx') {
       outName = baseName + '.xlsx';
       outputPath = path.join(os.tmpdir(), outName);
-      makeXlsx(text, outputPath);
+      await makeXlsx(text, outputPath);
     } else if (fmt === 'docx') {
       outName = baseName + '.docx';
       outputPath = path.join(os.tmpdir(), outName);
@@ -160,7 +152,7 @@ bot.on('document', async (msg) => {
   }
 });
 
-// ===== Extract text from PDF =====
+// ===== PDF Text Extractor =====
 function extractTextFromPDF(buffer) {
   try {
     const str = buffer.toString('latin1');
@@ -177,11 +169,10 @@ function extractTextFromPDF(buffer) {
         if (t.trim()) texts.push(t);
       }
       while ((m = tjArrRegex.exec(block)) !== null) {
-        const inner = m[1];
         const parts = [];
         const pRegex = /\(((?:[^()\\]|\\[\s\S])*)\)/g;
         let p;
-        while ((p = pRegex.exec(inner)) !== null) {
+        while ((p = pRegex.exec(m[1])) !== null) {
           const t = decodePdfString(p[1]);
           if (t.trim()) parts.push(t);
         }
@@ -205,17 +196,16 @@ function decodePdfString(s) {
     .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
 }
 
-// ===== Excel - FIXED: use plain string for sheet name =====
-function makeXlsx(text, outputPath) {
-  const rows = text.split('\n').map(l => {
-    const c = l.split(/\t|\s{4,}/);
-    return c.length > 1 ? c : [l];
+// ===== Excel using ExcelJS =====
+async function makeXlsx(text, outputPath) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Sheet1');
+  const lines = text.split('\n');
+  lines.forEach(line => {
+    const cells = line.split(/\t|\s{4,}/);
+    sheet.addRow(cells.length > 1 ? cells : [line]);
   });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  // Fix: use simple ASCII sheet name
-  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-  XLSX.writeFile(wb, outputPath);
+  await workbook.xlsx.writeFile(outputPath);
 }
 
 // ===== Word =====
