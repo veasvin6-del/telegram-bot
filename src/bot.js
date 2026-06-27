@@ -6,7 +6,7 @@ const os = require('os');
 const ExcelJS = require('exceljs');
 const pdfjsLib = require('pdfjs-dist');
 
-const TOKEN = process.env.BOT_TOKEN;
+const TOKEN = "8834925461:AAFOs3i7ficN_v8oWGEENtjgIVDzT8dL9X0";
 if (!TOKEN) { console.error('❌ BOT_TOKEN missing!'); process.exit(1); }
 
 const bot = new TelegramBot(TOKEN, { polling: true });
@@ -16,8 +16,8 @@ const mainMenu = {
   reply_markup: {
     keyboard: [
       [{ text: '📄 PDF → Excel' }, { text: '📝 PDF → Word' }],
-      [{ text: '📋 PDF → CSV' },   { text: '📃 PDF → Text' }],
-      [{ text: '❓ របៀបប្រើ' },    { text: '📞 ទាក់ទង' }]
+      [{ text: '📋 PDF → CSV' }, { text: '📃 PDF → Text' }],
+      [{ text: '❓ របៀបប្រើ' }, { text: '📞 ទាក់ទង' }]
     ],
     resize_keyboard: true,
     persistent: true
@@ -39,15 +39,15 @@ bot.on('message', async (msg) => {
 
   const formatMap = {
     '📄 PDF → Excel': 'xlsx',
-    '📝 PDF → Word':  'docx',
-    '📋 PDF → CSV':   'csv',
-    '📃 PDF → Text':  'txt',
+    '📝 PDF → Word': 'docx',
+    '📋 PDF → CSV': 'csv',
+    '📃 PDF → Text': 'txt',
   };
 
   if (formatMap[text]) {
     const fmt = formatMap[text];
     userState[chatId] = { step: 'waiting_pdf', format: fmt };
-    const labels = { xlsx:'Excel (.xlsx)', docx:'Word (.docx)', csv:'CSV (.csv)', txt:'Text (.txt)' };
+    const labels = { xlsx: 'Excel (.xlsx)', docx: 'Word (.docx)', csv: 'CSV (.csv)', txt: 'Text (.txt)' };
     return bot.sendMessage(chatId,
       `✅ ជ្រើស *${labels[fmt]}* ហើយ!\n\n📤 ឥឡូវ *ផ្ញើ PDF file* មកខ្ញុំ`,
       { parse_mode: 'Markdown', reply_markup: { keyboard: [[{ text: '🔙 ត្រឡប់ Menu' }]], resize_keyboard: true } }
@@ -90,7 +90,7 @@ bot.on('document', async (msg) => {
   }
 
   const fmt = state.format;
-  const fmtLabel = { xlsx:'Excel', docx:'Word', csv:'CSV', txt:'Text' }[fmt];
+  const fmtLabel = { xlsx: 'Excel', docx: 'Word', csv: 'CSV', txt: 'Text' }[fmt];
 
   const statusMsg = await bot.sendMessage(chatId,
     `⏳ *កំពុងបម្លែង PDF → ${fmtLabel}...*\nសូមរង់ចាំ...`,
@@ -192,7 +192,7 @@ async function makeXlsx(lines, outputPath) {
 
 // ===== Word =====
 function makeDocx(lines, outputPath) {
-  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const paras = lines.map(l => {
     if (!l.trim()) return '<w:p/>';
     return `<w:p><w:r><w:t xml:space="preserve">${esc(l)}</w:t></w:r></w:p>`;
@@ -209,32 +209,32 @@ function buildZip(files) {
   Object.entries(files).forEach(([name, content]) => {
     const nb = Buffer.from(name), data = Buffer.from(content, 'utf8');
     const lh = Buffer.alloc(30 + nb.length);
-    lh.writeUInt32LE(0x04034b50,0); lh.writeUInt16LE(20,4); lh.writeUInt32LE(0,6);
-    lh.writeUInt32LE(0,10); lh.writeUInt32LE(0,14);
-    lh.writeUInt32LE(data.length,18); lh.writeUInt32LE(data.length,22);
-    lh.writeUInt16LE(nb.length,26); lh.writeUInt16LE(0,28); nb.copy(lh,30);
+    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt32LE(0, 6);
+    lh.writeUInt32LE(0, 10); lh.writeUInt32LE(0, 14);
+    lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(data.length, 22);
+    lh.writeUInt16LE(nb.length, 26); lh.writeUInt16LE(0, 28); nb.copy(lh, 30);
     parts.push(lh); parts.push(data);
     const cd = Buffer.alloc(46 + nb.length);
-    cd.writeUInt32LE(0x02014b50,0); cd.writeUInt32LE(0x00140014,4);
-    cd.writeUInt32LE(0,8); cd.writeUInt32LE(0,12); cd.writeUInt32LE(0,16);
-    cd.writeUInt32LE(data.length,20); cd.writeUInt32LE(data.length,24);
-    cd.writeUInt16LE(nb.length,28); cd.writeUInt32LE(0,30); cd.writeUInt32LE(0,34);
-    cd.writeUInt32LE(0,38); cd.writeUInt32LE(offset,42); nb.copy(cd,46);
+    cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt32LE(0x00140014, 4);
+    cd.writeUInt32LE(0, 8); cd.writeUInt32LE(0, 12); cd.writeUInt32LE(0, 16);
+    cd.writeUInt32LE(data.length, 20); cd.writeUInt32LE(data.length, 24);
+    cd.writeUInt16LE(nb.length, 28); cd.writeUInt32LE(0, 30); cd.writeUInt32LE(0, 34);
+    cd.writeUInt32LE(0, 38); cd.writeUInt32LE(offset, 42); nb.copy(cd, 46);
     offset += lh.length + data.length; cds.push(cd);
   });
   const cdBuf = Buffer.concat(cds);
   const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50,0); eocd.writeUInt32LE(0,4);
-  eocd.writeUInt16LE(Object.keys(files).length,8); eocd.writeUInt16LE(Object.keys(files).length,10);
-  eocd.writeUInt32LE(cdBuf.length,12); eocd.writeUInt32LE(offset,16); eocd.writeUInt16LE(0,20);
+  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt32LE(0, 4);
+  eocd.writeUInt16LE(Object.keys(files).length, 8); eocd.writeUInt16LE(Object.keys(files).length, 10);
+  eocd.writeUInt32LE(cdBuf.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(0, 20);
   return Buffer.concat([...parts, cdBuf, eocd]);
 }
 
 function makeCsv(lines) {
   return lines.map(l => {
     const c = l.split(/\t|\s{3,}/);
-    if (c.length > 1) return c.map(x => '"' + x.replace(/"/g,'""') + '"').join(',');
-    return '"' + l.replace(/"/g,'""') + '"';
+    if (c.length > 1) return c.map(x => '"' + x.replace(/"/g, '""') + '"').join(',');
+    return '"' + l.replace(/"/g, '""') + '"';
   }).join('\r\n');
 }
 
