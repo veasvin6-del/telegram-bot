@@ -11,20 +11,18 @@ if (!TOKEN) { console.error('❌ BOT_TOKEN missing!'); process.exit(1); }
 const bot = new TelegramBot(TOKEN, { polling: true });
 const userState = {};
 
-// ===== MAIN MENU KEYBOARD =====
 const mainMenu = {
   reply_markup: {
     keyboard: [
       [{ text: '📄 PDF → Excel' }, { text: '📝 PDF → Word' }],
-      [{ text: '📋 PDF → CSV' }, { text: '📃 PDF → Text' }],
-      [{ text: '❓ របៀបប្រើ' }, { text: '📞 ទាក់ទង' }]
+      [{ text: '📋 PDF → CSV' },   { text: '📃 PDF → Text' }],
+      [{ text: '❓ របៀបប្រើ' },    { text: '📞 ទាក់ទង' }]
     ],
     resize_keyboard: true,
     persistent: true
   }
 };
 
-// ===== /start =====
 bot.onText(/\/start/, (msg) => {
   const name = msg.from.first_name || 'បង';
   bot.sendMessage(msg.chat.id,
@@ -33,7 +31,6 @@ bot.onText(/\/start/, (msg) => {
   );
 });
 
-// ===== Handle Menu Buttons =====
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
@@ -41,15 +38,15 @@ bot.on('message', async (msg) => {
 
   const formatMap = {
     '📄 PDF → Excel': 'xlsx',
-    '📝 PDF → Word': 'docx',
-    '📋 PDF → CSV': 'csv',
-    '📃 PDF → Text': 'txt',
+    '📝 PDF → Word':  'docx',
+    '📋 PDF → CSV':   'csv',
+    '📃 PDF → Text':  'txt',
   };
 
   if (formatMap[text]) {
     const fmt = formatMap[text];
     userState[chatId] = { step: 'waiting_pdf', format: fmt };
-    const labels = { xlsx: 'Excel (.xlsx)', docx: 'Word (.docx)', csv: 'CSV (.csv)', txt: 'Text (.txt)' };
+    const labels = { xlsx:'Excel (.xlsx)', docx:'Word (.docx)', csv:'CSV (.csv)', txt:'Text (.txt)' };
     return bot.sendMessage(chatId,
       `✅ ជ្រើស *${labels[fmt]}* ហើយ!\n\n📤 ឥឡូវ *ផ្ញើ PDF file* មកខ្ញុំ`,
       { parse_mode: 'Markdown', reply_markup: { keyboard: [[{ text: '🔙 ត្រឡប់ Menu' }]], resize_keyboard: true } }
@@ -63,11 +60,7 @@ bot.on('message', async (msg) => {
 
   if (text === '❓ របៀបប្រើ') {
     return bot.sendMessage(chatId,
-      `📖 *របៀបប្រើ PDF Converter Bot*\n\n` +
-      `1️⃣ ចុច format ដែលចង់បាន\n` +
-      `2️⃣ ផ្ញើ PDF file\n` +
-      `3️⃣ ទទួល file ✅\n\n` +
-      `⚠️ *ដែនកំណត់:*\n• PDF ≤ 20MB\n• PDF ត្រូវមាន text`,
+      `📖 *របៀបប្រើ PDF Converter Bot*\n\n1️⃣ ចុច format ដែលចង់បាន\n2️⃣ ផ្ញើ PDF file\n3️⃣ ទទួល file ✅\n\n⚠️ *ដែនកំណត់:*\n• PDF ≤ 20MB\n• PDF ត្រូវមាន text`,
       { parse_mode: 'Markdown', ...mainMenu }
     );
   }
@@ -80,17 +73,13 @@ bot.on('message', async (msg) => {
   }
 });
 
-// ===== Handle PDF =====
 bot.on('document', async (msg) => {
   const chatId = msg.chat.id;
   const doc = msg.document;
   const state = userState[chatId];
 
   if (!state || state.step !== 'waiting_pdf') {
-    return bot.sendMessage(chatId,
-      `⚠️ សូមជ្រើស *format* ពី Menu ជាមុនសិន!`,
-      { parse_mode: 'Markdown', ...mainMenu }
-    );
+    return bot.sendMessage(chatId, `⚠️ សូមជ្រើស *format* ពី Menu ជាមុនសិន!`, { parse_mode: 'Markdown', ...mainMenu });
   }
 
   if (doc.mime_type !== 'application/pdf') {
@@ -99,13 +88,13 @@ bot.on('document', async (msg) => {
 
   if (doc.file_size > 20 * 1024 * 1024) {
     return bot.sendMessage(chatId,
-      `⚠️ File ធំពេក! Max *20MB*\nFile អ្នក: ${(doc.file_size / 1024 / 1024).toFixed(1)}MB`,
+      `⚠️ File ធំពេក! Max *20MB*\nFile អ្នក: ${(doc.file_size/1024/1024).toFixed(1)}MB`,
       { parse_mode: 'Markdown' }
     );
   }
 
   const fmt = state.format;
-  const fmtLabel = { xlsx: 'Excel', docx: 'Word', csv: 'CSV', txt: 'Text' }[fmt];
+  const fmtLabel = { xlsx:'Excel', docx:'Word', csv:'CSV', txt:'Text' }[fmt];
 
   const statusMsg = await bot.sendMessage(chatId,
     `⏳ *កំពុងបម្លែង PDF → ${fmtLabel}...*\nសូមរង់ចាំ...`,
@@ -113,12 +102,10 @@ bot.on('document', async (msg) => {
   );
 
   try {
-    // Download PDF
     const fileLink = await bot.getFileLink(doc.file_id);
     const resp = await axios.get(fileLink, { responseType: 'arraybuffer' });
     const pdfBuffer = Buffer.from(resp.data);
 
-    // Extract text using manual parsing (no pdf-parse)
     const text = extractTextFromPDF(pdfBuffer);
 
     if (!text || text.trim().length === 0) {
@@ -173,18 +160,15 @@ bot.on('document', async (msg) => {
   }
 });
 
-// ===== Extract text from PDF buffer manually =====
+// ===== Extract text from PDF =====
 function extractTextFromPDF(buffer) {
   try {
     const str = buffer.toString('latin1');
     const texts = [];
-
-    // Match BT...ET blocks (PDF text blocks)
     const btEtRegex = /BT([\s\S]*?)ET/g;
     let match;
     while ((match = btEtRegex.exec(str)) !== null) {
       const block = match[1];
-      // Match Tj, TJ, ' operators
       const tjRegex = /\(((?:[^()\\]|\\[\s\S])*)\)\s*(?:Tj|')/g;
       const tjArrRegex = /\[((?:[^\[\]])*)\]\s*TJ/g;
       let m;
@@ -204,13 +188,10 @@ function extractTextFromPDF(buffer) {
         if (parts.length) texts.push(parts.join(''));
       }
     }
-
-    // Fallback: extract any readable strings
     if (texts.length === 0) {
       const readable = str.match(/[\x20-\x7E]{4,}/g) || [];
       return readable.filter(s => /[a-zA-Z]{2,}/.test(s)).join('\n');
     }
-
     return texts.join('\n');
   } catch (e) {
     throw new Error('មិនអាចអាន PDF: ' + e.message);
@@ -219,16 +200,12 @@ function extractTextFromPDF(buffer) {
 
 function decodePdfString(s) {
   return s
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
-    .replace(/\\\(/g, '(')
-    .replace(/\\\)/g, ')')
-    .replace(/\\\\/g, '\\')
+    .replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t')
+    .replace(/\\\(/g, '(').replace(/\\\)/g, ')').replace(/\\\\/g, '\\')
     .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
 }
 
-// ===== Converters =====
+// ===== Excel - FIXED: use plain string for sheet name =====
 function makeXlsx(text, outputPath) {
   const rows = text.split('\n').map(l => {
     const c = l.split(/\t|\s{4,}/);
@@ -236,12 +213,14 @@ function makeXlsx(text, outputPath) {
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, 'Content', ws);
+  // Fix: use simple ASCII sheet name
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
   XLSX.writeFile(wb, outputPath);
 }
 
+// ===== Word =====
 function makeDocx(text, outputPath) {
-  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const paras = text.split('\n').map(l => {
     const t = l.trim();
     if (!t) return '<w:p/>';
@@ -259,32 +238,32 @@ function buildZip(files) {
   Object.entries(files).forEach(([name, content]) => {
     const nb = Buffer.from(name), data = Buffer.from(content, 'utf8');
     const lh = Buffer.alloc(30 + nb.length);
-    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt32LE(0, 6);
-    lh.writeUInt32LE(0, 10); lh.writeUInt32LE(0, 14);
-    lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(data.length, 22);
-    lh.writeUInt16LE(nb.length, 26); lh.writeUInt16LE(0, 28); nb.copy(lh, 30);
+    lh.writeUInt32LE(0x04034b50,0); lh.writeUInt16LE(20,4); lh.writeUInt32LE(0,6);
+    lh.writeUInt32LE(0,10); lh.writeUInt32LE(0,14);
+    lh.writeUInt32LE(data.length,18); lh.writeUInt32LE(data.length,22);
+    lh.writeUInt16LE(nb.length,26); lh.writeUInt16LE(0,28); nb.copy(lh,30);
     parts.push(lh); parts.push(data);
     const cd = Buffer.alloc(46 + nb.length);
-    cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt32LE(0x00140014, 4);
-    cd.writeUInt32LE(0, 8); cd.writeUInt32LE(0, 12); cd.writeUInt32LE(0, 16);
-    cd.writeUInt32LE(data.length, 20); cd.writeUInt32LE(data.length, 24);
-    cd.writeUInt16LE(nb.length, 28); cd.writeUInt32LE(0, 30); cd.writeUInt32LE(0, 34);
-    cd.writeUInt32LE(0, 38); cd.writeUInt32LE(offset, 42); nb.copy(cd, 46);
+    cd.writeUInt32LE(0x02014b50,0); cd.writeUInt32LE(0x00140014,4);
+    cd.writeUInt32LE(0,8); cd.writeUInt32LE(0,12); cd.writeUInt32LE(0,16);
+    cd.writeUInt32LE(data.length,20); cd.writeUInt32LE(data.length,24);
+    cd.writeUInt16LE(nb.length,28); cd.writeUInt32LE(0,30); cd.writeUInt32LE(0,34);
+    cd.writeUInt32LE(0,38); cd.writeUInt32LE(offset,42); nb.copy(cd,46);
     offset += lh.length + data.length; cds.push(cd);
   });
   const cdBuf = Buffer.concat(cds);
   const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt32LE(0, 4);
-  eocd.writeUInt16LE(Object.keys(files).length, 8); eocd.writeUInt16LE(Object.keys(files).length, 10);
-  eocd.writeUInt32LE(cdBuf.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(0, 20);
+  eocd.writeUInt32LE(0x06054b50,0); eocd.writeUInt32LE(0,4);
+  eocd.writeUInt16LE(Object.keys(files).length,8); eocd.writeUInt16LE(Object.keys(files).length,10);
+  eocd.writeUInt32LE(cdBuf.length,12); eocd.writeUInt32LE(offset,16); eocd.writeUInt16LE(0,20);
   return Buffer.concat([...parts, cdBuf, eocd]);
 }
 
 function makeCsv(text) {
   return text.split('\n').map(l => {
     const c = l.split(/\t|\s{4,}/);
-    if (c.length > 1) return c.map(x => '"' + x.replace(/"/g, '""') + '"').join(',');
-    return '"' + l.replace(/"/g, '""') + '"';
+    if (c.length > 1) return c.map(x => '"' + x.replace(/"/g,'""') + '"').join(',');
+    return '"' + l.replace(/"/g,'""') + '"';
   }).join('\r\n');
 }
 
