@@ -4,18 +4,12 @@
   "description": "Telegram Bot to convert PDF to Excel/Word/CSV/Text",
   "main": "src/bot.js",
   "scripts": {
-    "start": "node src/bot.js",
-    "dev": "nodemon src/bot.js"
+    "start": "node src/bot.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
-    "pdf-parse": "^1.1.1",
     "xlsx": "^0.18.5",
-    "axios": "^1.6.0",
-    "form-data": "^4.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.0"
+    "axios": "^1.6.0"
   },
   "engines": {
     "node": ">=18.0.0"
