@@ -7,6 +7,7 @@ const ExcelJS = require('exceljs');
 const pdfjsLib = require('pdfjs-dist');
 
 const TOKEN = "8834925461:AAFOs3i7ficN_v8oWGEENtjgIVDzT8dL9X0";
+
 if (!TOKEN) { console.error('❌ BOT_TOKEN missing!'); process.exit(1); }
 
 const bot = new TelegramBot(TOKEN, { polling: true });
@@ -239,4 +240,15 @@ function makeCsv(lines) {
 }
 
 bot.on('polling_error', err => console.error('Polling error:', err.message));
+
+// ===== Keep-Alive Web Server (for UptimeRobot) =====
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('🤖 PDF Converter Bot is running!');
+}).listen(PORT, () => {
+  console.log(`✅ Keep-alive server running on port ${PORT}`);
+});
+
 console.log('🤖 PDF Converter Bot running...');
