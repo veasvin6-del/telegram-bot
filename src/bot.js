@@ -9,9 +9,9 @@ const ExcelJS = require('exceljs');
 const pdfjsLib = require('pdfjs-dist');
 
 // ===== SAFE: Load from environment variables =====
-const TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
-const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
+const TOKEN = process.env.BOT_TOKEN;
+const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+const GROQ_KEY = process.env.GROQ_API_KEY || '';
 
 if (!TOKEN) { console.error('❌ BOT_TOKEN missing!'); process.exit(1); }
 
