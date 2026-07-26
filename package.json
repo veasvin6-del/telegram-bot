@@ -1,15 +1,16 @@
 {
-  "name": "pdf-converter-bot",
-  "version": "1.0.0",
+  "name": "ai-assistant-bot",
+  "version": "2.0.0",
   "main": "src/bot.js",
   "scripts": {
     "start": "node src/bot.js"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
-    "exceljs": "^4.3.0",
+    "node-telegram-bot-api": "0.64.0",
+    "exceljs": "4.3.0",
     "pdfjs-dist": "3.11.174",
-    "axios": "^1.6.0"
+    "axios": "1.6.0",
+    "sharp": "0.33.0"
   },
   "engines": {
     "node": ">=18.0.0"
